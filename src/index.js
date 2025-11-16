@@ -11,7 +11,7 @@ const queryClient = new QueryClient();
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter basename={process.env.PUBLIC_URL || '/familycare-ims'}>
+      <BrowserRouter>
         <App />
       </BrowserRouter>
     </QueryClientProvider>

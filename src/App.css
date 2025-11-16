@@ -1,38 +1,43 @@
-.App {
-  text-align: center;
+/* --- Fix global de scroll --- */
+html, body, #root {
+  min-height: 100%;
+  height: auto;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+body {
+  overflow-y: auto;            /* <- asegúrate de NO tener overflow: hidden en otro lado */
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+/* --- Layout del dashboard --- */
+.app-shell {
+  min-height: 100vh;           /* ocupa el alto de la ventana */
 }
 
-.App-header {
-  background-color: #282c34;
+/* Sidebar fijo con su propio scroll si es alto */
+.app-aside {
+  width: 260px;
+  background: #f8f9fa;
+  position: sticky;
+  top: 0;
+  height: 100vh;               /* sidebar a toda altura */
+  overflow-y: auto;            /* scroll propio si hace falta */
+}
+
+/* El main crece y puede desbordar verticalmente (scroll de página) */
+.app-main {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  overflow: visible;
 }
 
-.App-link {
-  color: #61dafb;
+/* Header pegado arriba pero sin bloquear el scroll del contenido */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fff;            /* ya trae bg-white en JSX, reforzamos */
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* Contenido normal, no bloqueamos el overflow */
+.app-main-content {
+  overflow: visible;
 }

@@ -1,0 +1,16 @@
+{
+  "files": {
+    "main.css": "/familycare-ims/static/css/main.9afa28b8.css",
+    "main.js": "/familycare-ims/static/js/main.b54cc494.js",
+    "static/js/453.d7446e4a.chunk.js": "/familycare-ims/static/js/453.d7446e4a.chunk.js",
+    "static/media/logo.jpg": "/familycare-ims/static/media/logo.3b32213aa304a633f68a.jpg",
+    "index.html": "/familycare-ims/index.html",
+    "main.9afa28b8.css.map": "/familycare-ims/static/css/main.9afa28b8.css.map",
+    "main.b54cc494.js.map": "/familycare-ims/static/js/main.b54cc494.js.map",
+    "453.d7446e4a.chunk.js.map": "/familycare-ims/static/js/453.d7446e4a.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.9afa28b8.css",
+    "static/js/main.b54cc494.js"
+  ]
+}

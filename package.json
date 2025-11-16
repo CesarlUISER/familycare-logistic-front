@@ -2,7 +2,7 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://cesarluiser.github.io/familycare-ims/",
+  "homepage": "./",
   "dependencies": {
     "@tanstack/react-query": "^5.90.5",
     "@testing-library/dom": "^10.4.1",

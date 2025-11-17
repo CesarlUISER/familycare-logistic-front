@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const client = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "http://localhost:4000/api",
+  baseURL: process.env.REACT_APP_API_URL || "https://familycare-logistic-back.onrender.com/api",
 });
 
 // Adjunta Bearer token si existe

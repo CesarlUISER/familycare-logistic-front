@@ -1,171 +1,171 @@
-// src/pages/Purchases.jsx
+// frontend/src/pages/Purchases.jsx
 import React, { useState } from "react";
 import BarcodeInput from "../components/BarcodeInput";
-import { crearMovimientoEntradaPorCodigo } from "../api/movimientos";
+import { registrarEntradaPorCodigo } from "../api/movimientos";
 
 export default function Purchases() {
-  const [form, setForm] = useState({
-    codigo_barras: "",
-    cantidad: 1,
-    lote: "",
-    caducidad: "",
-    motivo: "compra",
-    documento_ref: "",
-  });
-
+  const [codigoBarras, setCodigoBarras] = useState("");
+  const [cantidad, setCantidad] = useState(1);
+  const [lote, setLote] = useState("");
+  const [caducidad, setCaducidad] = useState(""); // YYYY-MM-DD
+  const [motivo, setMotivo] = useState("");
   const [loading, setLoading] = useState(false);
-  const [mensaje, setMensaje] = useState(null);
-  const [error, setError] = useState(null);
-  const [detalle, setDetalle] = useState(null);
+  const [mensaje, setMensaje] = useState("");
+  const [error, setError] = useState("");
 
   const handleScan = (code) => {
-    setForm((prev) => ({ ...prev, codigo_barras: code }));
+    setCodigoBarras(code);
     setMensaje(`Código escaneado: ${code}`);
-    setError(null);
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setMensaje(null);
-    setDetalle(null);
+    setMensaje("");
+    setError("");
+
+    if (!codigoBarras) {
+      setError("Escanea primero un código de barras.");
+      return;
+    }
+    if (!cantidad || Number(cantidad) <= 0) {
+      setError("La cantidad debe ser mayor a 0.");
+      return;
+    }
 
     try {
-      const payload = {
-        codigo_barras: form.codigo_barras.trim(),
-        cantidad: Number(form.cantidad) || 1,
-        lote: form.lote.trim() || undefined,
-        caducidad: form.caducidad || undefined,
-        motivo: form.motivo.trim() || undefined,
-        documento_ref: form.documento_ref.trim() || undefined,
-      };
+      setLoading(true);
 
-      const data = await crearMovimientoEntradaPorCodigo(payload);
+      const resp = await registrarEntradaPorCodigo({
+        codigo_barras: codigoBarras,
+        cantidad,
+        lote,
+        caducidad,
+        motivo,
+      });
 
-      setMensaje("✅ Entrada registrada correctamente");
-      setDetalle(data);
-    } catch (err) {
-      console.error(err);
-      setError(
-        err.response?.data?.error ||
-          "Error al registrar la entrada. Revisa el backend."
+      setMensaje(
+        `Entrada registrada correctamente. Stock actual: ${
+          resp?.medicamento?.stock ?? "?"
+        }`
       );
+      setError("");
+
+      // dejamos el código por si quieres repetir entrada del mismo producto
+      setCantidad(1);
+      setLote("");
+      setCaducidad("");
+      // setCodigoBarras(""); // si prefieres limpiar también el código, descomenta
+    } catch (e) {
+      console.error(e);
+      const msg =
+        e?.response?.data?.error ||
+        "Error al registrar la entrada. Revisa el código de barras.";
+      setError(msg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="container mt-4">
-      <h2>Entradas de medicamentos</h2>
-      <p className="text-muted">
-        Escanea el código de barras y completa la información del lote.
+    <div>
+      <h1>Compras (entradas de stock)</h1>
+      <p>
+        Escanea el código de barras del medicamento, indica la cantidad,
+        opcionalmente el lote y la fecha de caducidad, y registra la entrada.
       </p>
 
-      <div className="mb-3">
-        <label className="form-label">Escáner de código de barras</label>
-        <BarcodeInput
-          onScan={handleScan}
-          placeholder="Escanea el código y presiona Enter"
-          className="form-control"
-        />
-      </div>
+      <form onSubmit={handleSubmit} style={{ maxWidth: 600, marginTop: 16 }}>
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ display: "block", marginBottom: 4 }}>
+            Escanea el código de barras
+          </label>
+          <BarcodeInput
+            onScan={handleScan}
+            placeholder="Escanea y presiona Enter..."
+          />
+          {codigoBarras && (
+            <small style={{ display: "block", marginTop: 4 }}>
+              Código actual: <strong>{codigoBarras}</strong>
+            </small>
+          )}
+        </div>
 
-      <form onSubmit={handleSubmit} className="card p-3">
-        <div className="mb-3">
-          <label className="form-label">Código de barras</label>
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ display: "block", marginBottom: 4 }}>Cantidad</label>
           <input
-            type="text"
-            className="form-control"
-            name="codigo_barras"
-            value={form.codigo_barras}
-            onChange={handleChange}
-            placeholder="También puedes escribirlo manualmente"
-            required
+            type="number"
+            min={1}
+            value={cantidad}
+            onChange={(e) => setCantidad(e.target.value)}
+            style={{ width: "100%", padding: 8 }}
           />
         </div>
 
-        <div className="row">
-          <div className="mb-3 col-md-4">
-            <label className="form-label">Cantidad</label>
-            <input
-              type="number"
-              className="form-control"
-              name="cantidad"
-              min={1}
-              value={form.cantidad}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="mb-3 col-md-4">
-            <label className="form-label">Lote</label>
-            <input
-              type="text"
-              className="form-control"
-              name="lote"
-              value={form.lote}
-              onChange={handleChange}
-              placeholder="Ej. L-ABC-123"
-              required
-            />
-          </div>
-
-          <div className="mb-3 col-md-4">
-            <label className="form-label">Fecha de caducidad</label>
-            <input
-              type="date"
-              className="form-control"
-              name="caducidad"
-              value={form.caducidad}
-              onChange={handleChange}
-              required
-            />
-          </div>
-        </div>
-
-        <div className="mb-3">
-          <label className="form-label">Motivo</label>
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ display: "block", marginBottom: 4 }}>Lote</label>
           <input
             type="text"
-            className="form-control"
-            name="motivo"
-            value={form.motivo}
-            onChange={handleChange}
+            value={lote}
+            onChange={(e) => setLote(e.target.value)}
+            placeholder="Ej: L-2025-01"
+            style={{ width: "100%", padding: 8 }}
           />
         </div>
 
-        <div className="mb-3">
-          <label className="form-label">Documento / Factura (opcional)</label>
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ display: "block", marginBottom: 4 }}>
+            Fecha de caducidad
+          </label>
           <input
-            type="text"
-            className="form-control"
-            name="documento_ref"
-            value={form.documento_ref}
-            onChange={handleChange}
+            type="date"
+            value={caducidad}
+            onChange={(e) => setCaducidad(e.target.value)}
+            style={{ width: "100%", padding: 8 }}
           />
         </div>
 
-        <button className="btn btn-primary" type="submit" disabled={loading}>
-          {loading ? "Guardando..." : "Registrar entrada"}
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ display: "block", marginBottom: 4 }}>
+            Motivo (opcional)
+          </label>
+          <input
+            type="text"
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            placeholder="compra, ajuste, donación..."
+            style={{ width: "100%", padding: 8 }}
+          />
+        </div>
+
+        <button type="submit" disabled={loading}>
+          {loading ? "Registrando..." : "Registrar entrada"}
         </button>
       </form>
 
-      {mensaje && <div className="alert alert-success mt-3">{mensaje}</div>}
-      {error && <div className="alert alert-danger mt-3">{error}</div>}
+      {mensaje && (
+        <div
+          style={{
+            marginTop: 16,
+            padding: 10,
+            backgroundColor: "#d4edda",
+            borderRadius: 4,
+          }}
+        >
+          {mensaje}
+        </div>
+      )}
 
-      {detalle && (
-        <div className="card mt-3 p-3">
-          <h5>Resultado</h5>
-          <pre style={{ whiteSpace: "pre-wrap" }}>
-            {JSON.stringify(detalle, null, 2)}
-          </pre>
+      {error && (
+        <div
+          style={{
+            marginTop: 16,
+            padding: 10,
+            backgroundColor: "#f8d7da",
+            borderRadius: 4,
+          }}
+        >
+          {error}
         </div>
       )}
     </div>

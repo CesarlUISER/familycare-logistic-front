@@ -1,119 +1,139 @@
-// src/pages/Reports.jsx
-import React, { useEffect, useState } from "react";
+// frontend/src/pages/Reports.jsx
+import React, { useState } from "react";
 import { listarMovimientos } from "../api/movimientos";
 
 export default function Reports() {
-  const [movs, setMovs] = useState([]);
-  const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState(null);
+  const [tipo, setTipo] = useState("todos");
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const [filtro, setFiltro] = useState({
-    tipo: "todos",
-  });
-
-  const cargar = async () => {
-    setCargando(true);
-    setError(null);
+  const handleLoad = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
     try {
-      const params = {};
-      if (filtro.tipo !== "todos") {
-        params.tipo = filtro.tipo;
-      }
+      const params = {
+        tipo: tipo === "todos" ? undefined : tipo,
+        desde: desde || undefined,
+        hasta: hasta || undefined,
+      };
+
       const data = await listarMovimientos(params);
-      setMovs(data.movimientos || data || []);
+      setItems(data);
     } catch (err) {
-      console.error(err);
-      setError(
-        err.response?.data?.error ||
-          "Error al cargar los movimientos. Revisa el backend."
-      );
+      console.error("Error al obtener movimientos:", err);
+      setError("Error al obtener movimientos");
     } finally {
-      setCargando(false);
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    cargar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFiltro((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    cargar();
-  };
-
   return (
-    <div className="container mt-4">
-      <h2>Reportes de movimientos</h2>
+    <div>
+      <h1>Reportes de movimientos</h1>
+      <p>
+        Aquí puedes ver todas las entradas y salidas de stock. Usa los filtros
+        para acotar por tipo de movimiento y rango de fechas.
+      </p>
 
-      <form className="card p-3 mb-3" onSubmit={handleSubmit}>
-        <div className="row align-items-end">
-          <div className="col-md-4 mb-2">
-            <label className="form-label">Tipo de movimiento</label>
-            <select
-              className="form-select"
-              name="tipo"
-              value={filtro.tipo}
-              onChange={handleChange}
-            >
-              <option value="todos">Todos</option>
-              <option value="entrada">Entradas</option>
-              <option value="salida">Salidas</option>
-            </select>
-          </div>
-          <div className="col-md-3 mb-2">
-            <button className="btn btn-primary w-100" type="submit">
-              Aplicar filtros
-            </button>
-          </div>
+      <form
+        onSubmit={handleLoad}
+        style={{
+          display: "flex",
+          gap: "1rem",
+          alignItems: "flex-end",
+          flexWrap: "wrap",
+          marginBottom: "1rem",
+        }}
+      >
+        <div>
+          <label className="form-label">Tipo de movimiento</label>
+          <select
+            className="form-select"
+            value={tipo}
+            onChange={(e) => setTipo(e.target.value)}
+          >
+            <option value="todos">Todos</option>
+            <option value="entrada">Entradas</option>
+            <option value="salida">Salidas</option>
+          </select>
         </div>
+
+        <div>
+          <label className="form-label">Desde</label>
+          <input
+            type="date"
+            className="form-control"
+            value={desde}
+            onChange={(e) => setDesde(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="form-label">Hasta</label>
+          <input
+            type="date"
+            className="form-control"
+            value={hasta}
+            onChange={(e) => setHasta(e.target.value)}
+          />
+        </div>
+
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={loading}
+          style={{ minWidth: 140 }}
+        >
+          {loading ? "Cargando..." : "Aplicar filtros"}
+        </button>
       </form>
 
-      {cargando && <p>Cargando...</p>}
-      {error && <div className="alert alert-danger">{error}</div>}
+      {error && (
+        <div className="alert alert-danger" role="alert">
+          {error}
+        </div>
+      )}
 
-      {!cargando && !error && (
+      {!loading && !error && items.length === 0 && (
+        <div className="alert alert-info" role="alert">
+          No hay movimientos para mostrar con los filtros actuales.
+        </div>
+      )}
+
+      {items.length > 0 && (
         <div className="table-responsive">
-          <table className="table table-sm table-striped">
+          <table className="table table-striped table-sm">
             <thead>
               <tr>
-                <th>ID</th>
                 <th>Fecha</th>
                 <th>Tipo</th>
                 <th>Medicamento</th>
+                <th>Código barras</th>
+                <th>Lote</th>
                 <th>Cantidad</th>
                 <th>Motivo</th>
-                <th>Documento</th>
               </tr>
             </thead>
             <tbody>
-              {movs.map((m) => (
-                <tr key={m.id}>
-                  <td>{m.id}</td>
+              {items.map((mov) => (
+                <tr key={mov.id}>
                   <td>
-                    {m.created_at
-                      ? new Date(m.created_at).toLocaleString()
-                      : ""}
+                    {mov.created_at
+                      ? new Date(mov.created_at).toLocaleString("es-MX")
+                      : "-"}
                   </td>
-                  <td>{m.tipo}</td>
-                  <td>{m.medicamento?.nombre || m.medicamento_nombre}</td>
-                  <td>{m.cantidad}</td>
-                  <td>{m.motivo}</td>
-                  <td>{m.documento_ref}</td>
+                  <td>{mov.tipo}</td>
+                  <td>{mov.medicamento_nombre || mov.medicamento?.nombre || "-"}</td>
+                  <td>{mov.codigo_barras || mov.medicamento?.codigo_barras || "-"}</td>
+                  <td>{mov.lote_codigo || mov.lote?.codigo || "-"}</td>
+                  <td>{mov.cantidad}</td>
+                  <td>{mov.motivo || "-"}</td>
                 </tr>
               ))}
-              {movs.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="text-center">
-                    No hay movimientos con los filtros seleccionados.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>

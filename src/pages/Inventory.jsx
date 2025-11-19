@@ -1,26 +1,35 @@
-// src/pages/Inventory.jsx
+// frontend/src/pages/Inventory.jsx
 import React, { useEffect, useState } from "react";
-import { listMedicamentos } from "../api/medicamentos";
+import { getInventarioActual } from "../api/reportes";
 
 export default function Inventory() {
-  const [items, setItems] = useState([]);
-  const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState(null);
+  const [items, setItems] = useState([]);     // siempre un array
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const cargar = async () => {
-    setCargando(true);
-    setError(null);
     try {
-      const data = await listMedicamentos();
-      setItems(data.medicamentos || data || []);
-    } catch (err) {
-      console.error(err);
-      setError(
-        err.response?.data?.error ||
-          "Error al cargar el inventario. Revisa el backend."
-      );
+      setLoading(true);
+      setError("");
+
+      const data = await getInventarioActual();
+
+      // Nos aseguramos de que sea un arreglo
+      if (Array.isArray(data)) {
+        setItems(data);
+      } else if (Array.isArray(data.items)) {
+        // por si en algún momento lo cambiamos a {items: [...]}
+        setItems(data.items);
+      } else {
+        setItems([]);
+        setError("Respuesta inesperada del servidor");
+      }
+    } catch (e) {
+      console.error("Error al obtener inventario:", e);
+      setError("Error al obtener los medicamentos");
+      setItems([]);
     } finally {
-      setCargando(false);
+      setLoading(false);
     }
   };
 
@@ -29,51 +38,57 @@ export default function Inventory() {
   }, []);
 
   return (
-    <div className="container mt-4">
-      <h2>Inventario</h2>
-      <p className="text-muted">
+    <div className="p-4">
+      <h1>Inventario</h1>
+      <p>
         Aquí puedes ver el stock actual por medicamento. Las entradas y salidas
-        se registran en las pantallas de Compras y Ventas.
+        se registran en las pantallas de <b>Compras</b> y <b>Ventas</b>.
       </p>
 
-      <button className="btn btn-secondary mb-3" onClick={cargar}>
-        Recargar
+      <button className="btn btn-primary mb-3" onClick={cargar} disabled={loading}>
+        {loading ? "Cargando..." : "Recargar"}
       </button>
 
-      {cargando && <p>Cargando...</p>}
-      {error && <div className="alert alert-danger">{error}</div>}
+      {error && (
+        <div className="alert alert-danger" role="alert">
+          {error}
+        </div>
+      )}
 
-      {!cargando && !error && (
+      {!error && !loading && items.length === 0 && (
+        <div className="alert alert-info">No hay medicamentos registrados.</div>
+      )}
+
+      {!error && items.length > 0 && (
         <div className="table-responsive">
-          <table className="table table-sm table-striped">
+          <table className="table table-striped table-sm">
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Código barras</th>
                 <th>Nombre</th>
-                <th>Descripción</th>
-                <th>Stock</th>
                 <th>Categoría</th>
+                <th>Stock total</th>
+                <th>Próx. a caducar</th>
+                <th>Fecha más próxima</th>
               </tr>
             </thead>
             <tbody>
               {items.map((m) => (
                 <tr key={m.id}>
                   <td>{m.id}</td>
-                  <td>{m.codigo_barras}</td>
                   <td>{m.nombre}</td>
-                  <td>{m.descripcion}</td>
-                  <td>{m.stock}</td>
-                  <td>{m.categoria?.nombre || m.categoria_nombre}</td>
-                </tr>
-              ))}
-              {items.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="text-center">
-                    No hay medicamentos registrados.
+                  <td>{m.categoria_nombre || "-"}</td>
+                  <td>{m.stock_total ?? m.stock ?? 0}</td>
+                  <td>{m.stock_por_vencer ?? 0}</td>
+                  <td>
+                    {m.fecha_caducidad_mas_proxima
+                      ? new Date(m.fecha_caducidad_mas_proxima).toLocaleDateString(
+                          "es-MX"
+                        )
+                      : "-"}
                   </td>
                 </tr>
-              )}
+              ))}
             </tbody>
           </table>
         </div>

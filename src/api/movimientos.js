@@ -1,58 +1,60 @@
-// src/api/movimientos.js
+// frontend/src/api/movimientos.js
 import client from "./client";
 
-// =========================
-// LISTAR MOVIMIENTOS
-// =========================
-export async function listarMovimientos(params = {}) {
-  const res = await client.get("/movimientos", { params });
-  return res.data;
+// 👉 Entrada de stock usando código de barras
+export async function registrarEntradaPorCodigo({
+  codigo_barras,
+  cantidad,
+  lote,
+  caducidad,
+  motivo,
+}) {
+  const payload = {
+    codigo_barras,
+    tipo: "entrada",                 // el backend lo usa para saber que es ENTRADA
+    cantidad: Number(cantidad),
+    lote: lote || undefined,
+    caducidad: caducidad || undefined, // YYYY-MM-DD
+    motivo: motivo || "compra",
+  };
+
+  const resp = await client.post("/movimientos", payload);
+  return resp.data; // { ok: true, movimiento, medicamento, lote }
 }
 
-// =========================
-// ENTRADA POR CÓDIGO
-// =========================
-// payload esperado:
-// {
-//   codigo_barras: string,
-//   cantidad?: number,
-//   lote?: string,
-//   caducidad?: string (YYYY-MM-DD),
-//   motivo?: string,
-//   documento_ref?: string
-// }
-export async function crearMovimientoEntradaPorCodigo(payload) {
-  const res = await client.post("/movimientos", {
-    ...payload,
-    tipo: "entrada",
-  });
-  return res.data;
-}
-
-// =========================
-// SALIDA POR CÓDIGO
-// =========================
-export async function crearMovimientoSalidaPorCodigo(payload) {
-  const res = await client.post("/movimientos", {
-    ...payload,
+// 👉 Salida de stock usando código de barras (la usaremos en Ventas.jsx)
+export async function registrarSalidaPorCodigo({
+  codigo_barras,
+  cantidad,
+  motivo,
+}) {
+  const payload = {
+    codigo_barras,
     tipo: "salida",
+    cantidad: Number(cantidad),
+    motivo: motivo || "venta",
+  };
+
+  const resp = await client.post("/movimientos", payload);
+  return resp.data;
+}
+
+// 👉 Listar movimientos (para la pantalla de Reportes)
+function toSQLDate(fecha) {
+  if (!fecha) return null;
+  const [dia, mes, anio] = fecha.split("/");
+  return `${anio}-${mes}-${dia}`;
+}
+
+export async function listarMovimientos({ tipo, desde, hasta }) {
+  const resp = await client.get("/movimientos", {
+    params: {
+      tipo,
+      desde: toSQLDate(desde),
+      hasta: toSQLDate(hasta)
+    }
   });
-  return res.data;
+
+  return resp.data?.data || [];
 }
 
-// =========================
-// ALIAS para no romper código viejo
-// =========================
-
-// Antes usabas entradaConCaducidad -> ahora apunta a la misma función
-export const entradaConCaducidad = crearMovimientoEntradaPorCodigo;
-
-// Antes usabas registrarSalida -> ahora apunta a la de salida
-export const registrarSalida = crearMovimientoSalidaPorCodigo;
-
-// Antes usabas salidaPorCaducidad en Expirations
-// De momento, se comporta igual que una salida normal.
-// Más adelante podemos hacer endpoint especial si lo necesitas.
-export async function salidaPorCaducidad(payload) {
-  return crearMovimientoSalidaPorCodigo(payload);
-}
